@@ -1,3 +1,13 @@
+var _getBox = function (val,widget,box) {
+    if (widget.get("initialized") && !widget.get("rendered") && !widget._handling && widget.get("parent").get("populated")) {
+        widget._handling = TRUE;
+        widget.render();
+        val = widget._state.get(box, VALUE);
+    }
+    return val;
+};
+
+
 /**
  * The Treeview component is a UI widget that allows users
  * to create a hierarchical-like structure of elements.
@@ -16,14 +26,12 @@
         */
         BOUNDING_TEMPLATE : '<ul id="{{id}}" class="{{boundingClasses}}">{{{contentBox}}}</ul>',
         
-            
         /**
          * Property defining the markup template for content box.          
          *
          * @property CONTENT_TEMPLATE
          * @type String
         */
-        CONTENT_TEMPLATE : null,
         
         
         /**
@@ -32,7 +40,7 @@
          * @property TREEVIEWLABEL_TEMPLATE
          * @type String
         */
-        TREEVIEWLABEL_TEMPLATE : "<a class='{{treelabelClassName}}' role='treeitem' href='javascript:void(0);'><span class={{labelcontentClassName}}>{{{label}}}</span></a>",
+        TREEVIEWLABEL_TEMPLATE : "<a class='{{{treelabelClassName}}}' role='treeitem'><span class={{{labelcontentClassName}}}>{{{label}}}</span></a>",
         
         /**
          * Property defining the markup template for the expand controller.
@@ -40,20 +48,21 @@
          * @property EXPANDCONTROL_TEMPLATE
          * @type String
         */
-        EXPANDCONTROL_TEMPLATE : "<span class='{labelcontentClassName}'>{label}</span>",
+        EXPANDCONTROL_TEMPLATE : "<span class='{{{labelcontentClassName}}}'>{{{label}}}</span>",
         
+               
         /**
-         * Flag to indicate whether a tree has been populated with it's children or not.
-         *
-         * @property _populated
-         * @type Boolean
-        */
-        
-         /**
          * Flag to indicate whether a content Box/Bounding box has been returned from the getter attribute.
          *
          * @property _handling
          * @type Boolean
+        */
+        
+        /**
+         * The template for a branch element.
+         *
+         * @property branchTemplate
+         * @type String
         */
 
         /**
@@ -68,12 +77,8 @@
          * @param  config {Object} Configuration object literal for the widget
          */
         initializer : function (config) {
-            
-            this.lazyLoad = config.lazyLoad;
-            
-            //this.after('parentChange', this._onParentChange,this);
             this.publish('toggleTreeState', { 
-                defaultFn: this._toggleTreeState
+                defaultFn: this.toggleTreeState
             });
         },
         
@@ -88,14 +93,13 @@
             var label = this.get("label"),
                 labelContent,
                 isBranch = this.get("depth") > -1,
-                handlebars = Y.Handlebars,
                 treelabelClassName = this.getClassName("treelabel"),
                 labelcontentClassName = classNames.labelcontent;
                 
-                
-            this.BOUNDING_TEMPLATE = isBranch ? '<li id="{{id}}" class="{{boundingClasses}}">{{{contentBox}}}</li>' : '<ul id="{{id}}" class="{{boundingClasses}}">{{{contentBox}}}</ul>';
-            this.CONTENT_TEMPLATE = isBranch ? '<ul id="{{id}}" class="{{contentClasses}}">{{{content}}}</ul>' : null;
-            labelContent = handlebars.render(this.TREEVIEWLABEL_TEMPLATE, {label:label, treelabelClassName : treelabelClassName, labelcontentClassName : labelcontentClassName});
+                          
+            this.BOUNDING_TEMPLATE = isBranch ? '<li id="{{{id}}}" class="{{{boundingClasses}}}">{{{contentBox}}}</li>' : '<ul id="{{{id}}}" class="{{{boundingClasses}}}">{{{contentBox}}}</ul>';
+            this.CONTENT_TEMPLATE = isBranch ? '<ul id="{{id}}" class="{{{contentClasses}}}">{{{content}}}</ul>' : null;
+            labelContent = Y.Handlebars.render(this.TREEVIEWLABEL_TEMPLATE, {label:label, treelabelClassName : treelabelClassName, labelcontentClassName : labelcontentClassName});
             contentBuffer.push(labelContent);
         },
         
@@ -174,13 +178,14 @@
                         break;
                     case classNames.treeLabel :
                         if (keycode === 39) {
-                            this._expandTree(target);
+                            this.expandTree(target);
                         } else if (keycode === 37) {
-                            this._collapseTree(target);
+                            this.collapseTree(target);
                         }
                         break;
                 }
             }
+  
         },
     
        /**
@@ -196,80 +201,76 @@
         * @protected
         */ 
         _renderChildren: function (contentBuffer) {
-            if (!this.lazyLoad) {
-                this._onLazyRenderChildren(contentBuffer);
+            var childrenHTML;
+            
+            if (!this.get("lazyLoad")) {
+                childrenHTML = this._getChildrenHTML(this);
+                contentBuffer.push(childrenHTML);
             }
+
         },
         
-        /**
+       /**
+        * Renders all child Widgets for the parent.  
+        * <p>
+        * Giving a tree, it concatenates all the strings for it's children
+        * </p>
+        * @param {Object} The tree we are trying to obtain the children from
+        * @method getChildrenHTML
+        * @protected
+        */ 
+
+        _getChildrenHTML : function (tree) {
+             var childrenHTML = "";
+
+            tree.each(function (child) {
+                childrenHTML += child.renderHTML();
+            });
+            
+            return childrenHTML;
+
+        },
+        
+      /**
         *  
         * <p>
         * This method in invoked on demand when children are required
         * to display
         * </p>
-        * @method _onLazyRenderChildren
+        * @method _lazyRenderChildren
         * @param {Object} treeWidget, the widget Object 
         * @param {Y.Node} treeNode 
         * @protected
         */ 
-        _onLazyRenderChildren : function (treeWidget,treeNode) {
-            var childrenHTML = "";
+        _lazyRenderChildren : function (treeWidget,treeNode) {
             
-                if (treeWidget.each) {
-                    treeWidget.each(function (child) {
-                        childrenHTML += child.renderHTML();
-                    });
-                }
-                
-                if (treeNode && treeNode.Node) {
-                    treeNode.append(childrenHTML);
-                    this._populated = true;
-                }
+            var childrenHTML = treeWidget.getChildrenHTML(treeWidget);
+            
+            treeNode.append(childrenHTML);
+            treeWidget.set("populated",true);
+            
         },
-                
+        
+                       
         /**
          * Toggles the collapsed/expanded class
          * @method _toggleTreeState
          * @protected
          */
-        _toggleTreeState : function (target) {
-        
-            var treeNode = target.actionNode.ancestor('.yui3-treeview-content'),
-                treeWidget = Y.Widget.getByNode(target.actionNode);
+       toggleTreeState : function (target) {
+            var treeNode = target.actionNode.ancestor('.'+ classNames.treeviewcontent),
+                treeWidget = Y.Widget.getByNode(target.actionNode),
+                isPopulated = treeWidget.get("populated");
             
-            
-            if (this.lazyLoad && !treeNode.hasClass("rendered")) {
-                this._onLazyRenderChildren(treeWidget,treeNode);
-                treeNode.addClass("rendered");
+            if (this.get("lazyLoad") && !isPopulated) {
+                treeWidget._lazyRenderChildren(treeWidget,treeNode);
+                treeWidget.set("populated",true);
             }
+            
+            treeWidget.set("collapsed", !treeWidget.get("collapsed"));        
             treeNode.toggleClass(classNames.collapsed);
-        },
-        
-        /**
-         * Collapse the tree
-         * @method _collapseTree
-         * @protected
-         */
-        _collapseTree: function (target) {
-            var tree = target.ancestor('.'+classNames.treeview);   
-            
-            if (!tree.hasClass(classNames.collapsed)) {
-                tree.toggleClass(classNames.collapsed);
-            }
-        },
-        
-        /**
-         * Expands the tree
-         * @method _expandTree
-         * @protected
-         */
-        _expandTree : function (target) {
-            var tree = target.ancestor('.'+classNames.treeview);   
-            
-            if (tree.hasClass(classNames.collapsed)) {
-                tree.toggleClass(classNames.collapsed);
-            }
         }
+    
     }, {
         ATTRS: {
             /**
@@ -278,9 +279,42 @@
              * @attribute label
              * @type String
              */
-            label: {
-                value:"Default Parent Label"
+            label : {
+                value:""
             },
+            
+             
+            /**
+             * Configuration to set lazyLoad enabled. When enabled, all the children rendering will be done on demand.
+             *
+             * @attribute _populated
+             * @type Boolean
+            */
+            
+            lazyLoad : {
+                writeOnce : "initOnly"
+            },
+            
+            
+            /**
+             * Attribute to indicate whether a tree has been populated with it's children or not.
+             *
+             * @attribute populated
+             * @type Boolean
+            */
+
+            populated : {
+                readOnly : true
+            },
+            
+            /**
+             * Attribute to indicate whether a tree is in a collapsed state or not
+             *
+             * @attribute collapsed
+             * @type Boolean
+            */
+            
+            collapsed : {},
             
             /**
              * The default children type.
@@ -300,7 +334,7 @@
              */
             boundingBox: {
                 getter : function(val) {
-                    if (this.get("initialized") && !this.get("rendered") && !this._handling && this._populated) {
+                    if (this.get("initialized") && !this.get("rendered") && !this._handling && this.get("populated")) {
                         this._handling = TRUE;
                         this.render();
                         val = this._state.get(BOUNDING_BOX, VALUE);
@@ -317,7 +351,7 @@
              */
             contentBox: {
                 getter : function(val) {
-                    if (this.get("initialized") && !this.get("rendered") && !this._handling && this._populated) {
+                    if (this.get("initialized") && !this.get("rendered") && !this._handling && this.get("populated")) {
                         this._handling = TRUE;
                         this.render();
                         val = this._state.get(CONTENT_BOX, VALUE);
@@ -358,9 +392,7 @@
              * @attribute label
              * @type String
              */
-            label: {
-                value:"Default Child Label"
-            },
+            label: {},
             
             /**
              * Specifying a custom getter for the Bounding box so that
@@ -370,7 +402,7 @@
              */
             boundingBox: {
                 getter : function(val) {
-                    if (this.get("initialized") && !this.get("rendered") && !this._handling && this.get("parent")._populated) {
+                    if (this.get("initialized") && !this.get("rendered") && !this._handling && this.get("parent").get("populated")) {
                         this._handling = TRUE;
                         this.render();
                         val = this._state.get(BOUNDING_BOX, VALUE);
@@ -387,7 +419,7 @@
              */
             contentBox: {
                 getter : function(val) {
-                    if (this.get("initialized") && !this.get("rendered") && !this._handling && this.get("parent")._populated) {
+                    if (this.get("initialized") && !this.get("rendered") && !this._handling && this.get("parent").get("populated")) {
                         this._handling = TRUE;
                         this.render();
                         val = this._state.get(CONTENT_BOX, VALUE);
