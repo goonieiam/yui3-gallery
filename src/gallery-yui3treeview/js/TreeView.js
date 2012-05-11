@@ -40,7 +40,7 @@ var _getBox = function (val,widget,box) {
          * @property TREEVIEWLABEL_TEMPLATE
          * @type String
         */
-        TREEVIEWLABEL_TEMPLATE : "<a class='{{{treelabelClassName}}}' role='treeitem'><span class={{{labelcontentClassName}}}>{{{label}}}</span></a>",
+        TREEVIEWLABEL_TEMPLATE : "<a class='{{{treelabelClassName}}}' role='treeitem' tabindex='0'><span class={{{labelcontentClassName}}}>{{{label}}}</span></a>",
         
         /**
          * Property defining the markup template for the expand controller.
@@ -97,8 +97,8 @@ var _getBox = function (val,widget,box) {
                 labelcontentClassName = classNames.labelcontent;
                 
                           
-            this.BOUNDING_TEMPLATE = isBranch ? '<li id="{{{id}}}" class="{{{boundingClasses}}}">{{{contentBox}}}</li>' : '<ul id="{{{id}}}" class="{{{boundingClasses}}}">{{{contentBox}}}</ul>';
-            this.CONTENT_TEMPLATE = isBranch ? '<ul id="{{id}}" class="{{{contentClasses}}}">{{{content}}}</ul>' : null;
+            this.BOUNDING_TEMPLATE = isBranch ? '<li id="{{{id}}}" role="presentation" class="{{{boundingClasses}}}">{{{contentBox}}}</li>' : '<ul id="{{{id}}}" role="tree" class="{{{boundingClasses}}}">{{{contentBox}}}</ul>';
+            this.CONTENT_TEMPLATE = isBranch ? '<ul id="{{id}}" role="group" class="{{{contentClasses}}}">{{{content}}}</ul>' : null;
             labelContent = Y.Handlebars.render(this.TREEVIEWLABEL_TEMPLATE, {label:label, treelabelClassName : treelabelClassName, labelcontentClassName : labelcontentClassName});
             contentBuffer.push(labelContent);
         },
@@ -150,6 +150,8 @@ var _getBox = function (val,widget,box) {
             //only attaching to the root element
             if (this.isRoot()) {
                 this.get("boundingBox").on("click",this._onViewEvents,this);
+                this.get("boundingBox").on("keydown",this._onViewEvents,this);
+
             }
         },
         
@@ -166,6 +168,7 @@ var _getBox = function (val,widget,box) {
                 className,
                 i,
                 cLength;
+                
             
             classes = target.get("className").split(" ");
             cLength = classes.length;
@@ -178,9 +181,9 @@ var _getBox = function (val,widget,box) {
                         break;
                     case classNames.treeLabel :
                         if (keycode === 39) {
-                            this.expandTree(target);
+                            this.fire('toggleTreeState',{actionNode:target});
                         } else if (keycode === 37) {
-                            this.collapseTree(target);
+                            this.fire('toggleTreeState',{actionNode:target});
                         }
                         break;
                 }
@@ -244,7 +247,7 @@ var _getBox = function (val,widget,box) {
         */ 
         _lazyRenderChildren : function (treeWidget,treeNode) {
             
-            var childrenHTML = treeWidget.getChildrenHTML(treeWidget);
+            var childrenHTML = treeWidget._getChildrenHTML(treeWidget);
             
             treeNode.append(childrenHTML);
             treeWidget.set("populated",true);
@@ -370,7 +373,7 @@ var _getBox = function (val,widget,box) {
     Y.TreeLeaf = Y.Base.create("treeleaf", WIDGET, [Y.WidgetChild,Y.WidgetHTMLRenderer], {
     
     
-        BOUNDING_TEMPLATE : '<li id="{{id}}" class="{{boundingClasses}}">{{{contentBox}}}</li>',
+        BOUNDING_TEMPLATE : '<li id="{{id}}" role="treeitem" class="{{boundingClasses}}" tabindex="0">{{{contentBox}}}</li>',
     
         CONTENT_TEMPLATE : null,
     
