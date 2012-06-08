@@ -3,10 +3,9 @@
 /**
  * The Treeview component is a UI widget that allows users
  * to create a hierarchical-like structure of elements.
- * Extendes Y.WidgetParent, Y.WidgetChild, Y.WidgetHTMLRenderer
- * Treeview can be generated either by configuration object or exisiting markup to
- * provide progressive enhancement.
- * @module gallery-yui3treeview
+ * Extends Y.WidgetParent, Y.WidgetChild, Y.WidgetHTMLRenderer
+ * Treeview can be generated either by providing a configuration object  
+ * @module TreeView
  */
     Y.TreeView = Y.Base.create("treeview", WIDGET, [Y.WidgetParent, Y.WidgetChild, Y.WidgetHTMLRenderer], {
     
@@ -25,7 +24,6 @@
          * @type String
         */
         
-        
         /**
          * Property defining the markup template for the trewview label .
          *
@@ -41,7 +39,6 @@
          * @type String
         */
         EXPANDCONTROL_TEMPLATE : "<span class='{{{labelcontentClassName}}}'>{{{label}}}</span>",
-        
                
         /**
          * Flag to indicate whether a content Box/Bounding box has been returned from the getter attribute.
@@ -95,42 +92,7 @@
                 contentBuffer.push(labelContent);
         },
         
-        /**
-        * Utility method to add the boundingClasses and contentClasses property values
-        * to the Handlebars context passed in. Similar to _renderBoxClassNames() on
-        * the Node based renderer.
-        *
-        * @method _renderBoxClassNames
-        * @param {Object} context The Handlebars context object on which the
-        * boundingClasses and contentClasses properties get added.
-        */
-        _renderBoxClassNames: function(context) {
-            var classes = this._getClasses(),
-                cl,
-                i,
-                contentClass = this.getClassName(CONTENT),
-                boundingClasses = [];
-                
-                boundingClasses[boundingClasses.length] = Widget.getClassName();
-                
-                
-            for (i = classes.length-3; i >= 0; i--) {
-                cl = classes[i];
-                boundingClasses[boundingClasses.length] = Y.ClassNameManager.getClassName(cl.NAME.toLowerCase()) || this.getClassName(cl.NAME.toLowerCase());
-            }
-            
-            
-            
-            if (this.CONTENT_TEMPLATE === null) {
-                boundingClasses.push(contentClass);
-                boundingClasses.push(classNames.collapsed);
-            } else {
-                context.contentClasses = contentClass + " " + classNames.collapsed;
-            }
-            
-            context.boundingClasses = boundingClasses.join(" ");
-        },
-
+      
         /**
          * bindUI implementation
          *
@@ -273,78 +235,7 @@
             }
         },
         
-        /******************* OVERWRITE **************************/
-                
-         
         /**
-         * Sets the container for children to renderTo when using _uiAddChild
-         *
-         * @method _setChildrenContainer
-        */  
-        _setChildrenContainer : function () {
-             var renderTo = this._childrenContainer || this.get("contentBox");
-             this._childrenContainer = renderTo;
-        },
-        
-        /**
-        * Updates the UI in response to a child being added.
-        *
-        * @method _uiAddChild
-        * @protected
-        * @param child {Widget} The child Widget instance to render.
-        * @param parentNode {Object} The Node under which the 
-        * child Widget is to be rendered.
-        */    
-        _uiAddChild: function (child, parentNode) {
-            var parent = child.get("parent"),
-                childBB,
-                siblingBB,
-                nextSibling,
-                prevSibling;
-            
-            if (parent.get("populated")) {
-                child.render(parentNode);
-                childBB = child.get("boundingBox");
-                nextSibling = child.next(false);
-
-            // Insert or Append to last child.
-            
-            // Avoiding index, and using the current sibling 
-            // state (which should be accurate), means we don't have 
-            // to worry about decorator elements which may be added 
-            // to the _childContainer node.
-            
-            if (nextSibling && nextSibling.get("DOMReady")) {
-            
-                siblingBB = nextSibling.get(BOUNDING_BOX);
-                siblingBB.insert(childBB, "before");
-            
-            } else {
-                prevSibling = child.previous(false);
-                
-                if (prevSibling && prevSibling.get("DOMReady")) {
-                
-                    siblingBB = prevSibling.get(BOUNDING_BOX);
-                    siblingBB.insert(childBB, "after");
-                
-                } else if (!parentNode.contains(childBB)) {
-                
-                    // Based on pull request from andreas-karlsson
-                    // https://github.com/yui/yui3/pull/25#issuecomment-2103536
-                
-                    // Account for case where a child was rendered independently of the 
-                    // parent-child framework, to a node outside of the parentNode,
-                    // and there are no siblings.
-                
-                    parentNode.appendChild(childBB);
-                }
-            }
-
-            }
-        },
-
-        
-       /**
         * Renders all child Widgets for the parent.  
         * <p>
         * Giving a tree, it concatenates all the strings for it's children
@@ -385,7 +276,7 @@
         
        /**
         * <p>
-        * Collapses a tree.
+        *   Collapses a tree.
         * </p>
         * @param {Y.Node} This param is optional - The target that triggered the event
         * @method collapse
@@ -405,7 +296,7 @@
         
        /**
         * <p>
-        * Expands a tree. If the tree hasn't been rendered, it will render it before.
+        *   Expands a tree. If the tree hasn't been rendered yet, it will render it before, then expand it.
         * </p>
         * @param {Y.Node} This param is optional - The target that triggered the event
         * @method expand
@@ -430,7 +321,7 @@
         },
         
        /**
-        * Toggles the collapsed/expanded class. If the Tree hasn't been rendered it will render it before.
+        * Toggles the tree. If the Tree hasn't been rendered it will render it before.
         * @param {Y.Node} This param is optional - The target that triggered the event
         * @method _toggleTreeState
         * @protected
@@ -447,8 +338,117 @@
             
             treeWidget.set("collapsed", !treeWidget.get("collapsed"));        
             treeNode.toggleClass(classNames.collapsed);
+        },
+
+        
+        /******************* OVERWRITE **************************/
+                
+         
+        /**
+         * Sets the container for children to renderTo when using _uiAddChild
+         *
+         * @method _setChildrenContainer
+        */  
+        _setChildrenContainer : function () {
+             var renderTo = this._childrenContainer || this.get("contentBox");
+             this._childrenContainer = renderTo;
+        },
+        
+          /**
+        * Utility method to add the boundingClasses and contentClasses property values
+        * to the Handlebars context passed in. Similar to _renderBoxClassNames() on
+        * the Node based renderer.
+        *
+        * @method _renderBoxClassNames
+        * @param {Object} context The Handlebars context object on which the
+        * boundingClasses and contentClasses properties get added.
+        */
+        _renderBoxClassNames: function(context) {
+            var classes = this._getClasses(),
+                cl,
+                i,
+                contentClass = this.getClassName(CONTENT),
+                boundingClasses = [];
+                
+                boundingClasses[boundingClasses.length] = Widget.getClassName();
+                
+                
+            for (i = classes.length-3; i >= 0; i--) {
+                cl = classes[i];
+                boundingClasses[boundingClasses.length] = Y.ClassNameManager.getClassName(cl.NAME.toLowerCase()) || this.getClassName(cl.NAME.toLowerCase());
+            }
+            
+            
+            
+            if (this.CONTENT_TEMPLATE === null) {
+                boundingClasses.push(contentClass);
+                boundingClasses.push(classNames.collapsed);
+            } else {
+                context.contentClasses = contentClass + " " + classNames.collapsed;
+            }
+            
+            context.boundingClasses = boundingClasses.join(" ");
+        },
+
+        
+        /**
+        * Updates the UI in response to a child being added.
+        *
+        * @method _uiAddChild
+        * @protected
+        * @param child {Widget} The child Widget instance to render.
+        * @param parentNode {Object} The Node under which the 
+        * child Widget is to be rendered.
+        */    
+        _uiAddChild: function (child, parentNode) {
+            var parent = child.get("parent"),
+                childBB,
+                siblingBB,
+                nextSibling,
+                prevSibling;
+            
+            if (parent.get("populated")) {
+                child.render(parentNode);
+                childBB = child.get("boundingBox");
+                nextSibling = child.next(false);
+
+            
+            // Insert or Append to last child.
+            
+            // Avoiding index, and using the current sibling 
+            // state (which should be accurate), means we don't have 
+            // to worry about decorator elements which may be added 
+            // to the _childContainer node.
+            
+            if (nextSibling && nextSibling.get("DOMReady")) {
+            
+                siblingBB = nextSibling.get(BOUNDING_BOX);
+                siblingBB.insert(childBB, "before");
+            
+            } else {
+                prevSibling = child.previous(false);
+                
+                if (prevSibling && prevSibling.get("DOMReady")) {
+                
+                    siblingBB = prevSibling.get(BOUNDING_BOX);
+                    siblingBB.insert(childBB, "after");
+                
+                } else if (!parentNode.contains(childBB)) {
+                
+                    // Based on pull request from andreas-karlsson
+                    // https://github.com/yui/yui3/pull/25#issuecomment-2103536
+                
+                    // Account for case where a child was rendered independently of the 
+                    // parent-child framework, to a node outside of the parentNode,
+                    // and there are no siblings.
+                
+                    parentNode.appendChild(childBB);
+                }
+            }
+
+            }
         }
-    
+
     }, {
         ATTRS: {
             /**
@@ -478,7 +478,8 @@
             */
             
             lazyLoad : {
-                writeOnce : "initOnly"
+                writeOnce : "initOnly",
+                value : true
             },
             
             
@@ -522,11 +523,8 @@
              */
             boundingBox: {
                 getter : function(val) {
-                    if (!val) {
-                       val = _getBox(this,BOUNDING_BOX);
-                    }
-                    
-                    return val;
+                    return val ? val :  _getBox(this,BOUNDING_BOX);
+
                 }
             },
             
@@ -538,11 +536,7 @@
              */
             contentBox: {
                 getter : function(val) {
-                    if (!val) {
-                       val = _getBox(this,CONTENT_BOX);
-                    }
-                    
-                    return val;
+                    return val ? val :  _getBox(this,CONTENT_BOX);
                 }
             }
         }
@@ -609,11 +603,7 @@
              */
             boundingBox: {
                 getter : function(val) {
-                   if (!val) {
-                       val = _getBox(this,BOUNDING_BOX);
-                    }
-                    
-                    return val;
+                    return val ? val :  _getBox(this,BOUNDING_BOX);
                 }
             },
             
@@ -625,11 +615,7 @@
              */
             contentBox: {
                 getter : function(val) {
-                    if (!val) {
-                       val = _getBox(this,CONTENT_BOX);
-                    }
-                             
-                    return val;
+                    return val ? val :  _getBox(this,CONTENT_BOX);
                 }
             }
         }
