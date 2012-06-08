@@ -13,6 +13,10 @@ var getClassName = Y.ClassNameManager.getClassName,
         ID = "id",
         DESTROYED = "destroyed",
         BODY = "body",
+        KEY_DOWN        = 40,
+        KEY_LEFT_ARROW  = 37,
+        KEY_RIGHT_ARROW = 39,
+        KEY_UP          = 38,
         Handlebars = Y.Handlebars,
         _getClassName = Y.ClassNameManager.getClassName,
         _getWidgetClassName = Y.Widget.getClassName,
@@ -22,11 +26,21 @@ var getClassName = Y.ClassNameManager.getClassName,
             treeLabel : getClassName(TREEVIEW,"treelabel"),
             labelcontent : getClassName(TREEVIEW,'label-content'),
             treeview : getClassName(TREEVIEW),
+            treeviewcontent : getClassName(TREEVIEW,"content"),
             collapsed : getClassName(TREE,"collapsed"),
             leaf : getClassName(TREELEAF)
+        },
+        _getBox = function (widget,box) {
+            var value;
+            
+            if (widget.get("initialized") && !widget.get("rendered") && !widget._handling && widget.get("DOMReady")) {
+                widget._handling = TRUE;
+                widget.render();
+                value = widget._state.get(box,VALUE);
+            }
+            return value;
         };
-
-
+            
 /**
  * Provides the WidgetHTMLRenderer extensions, which overrides the base Widget API 
  * to allow widgets to be rendered purely using HTML from templates, without any Node references. 
